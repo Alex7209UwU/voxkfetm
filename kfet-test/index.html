@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KFET Manager - Gestion du Planning</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' fill='%236366f1'>📋</text></svg>">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+    <div id="loader" class="loader active">
+        <div class="loader-box">
+            <div class="spinner"></div>
+            <div>Chargement...</div>
+        </div>
+    </div>
+
+    <!-- Mobile menu button -->
+    <button id="mobileMenuBtn" class="btn-icon mobile-menu" aria-label="Menu">☰</button>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">📋 KFET</div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-page="planning">
+                <span class="nav-icon">📅</span>
+                <span class="nav-text">Planning</span>
+            </a>
+            <a href="#" class="nav-item" data-page="stats">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">Statistiques</span>
+            </a>
+            <a href="#" class="nav-item" data-page="notes">
+                <span class="nav-icon">📝</span>
+                <span class="nav-text">Notes</span>
+            </a>
+            <a href="#" class="nav-item" data-page="history">
+                <span class="nav-icon">📜</span>
+                <span class="nav-text">Historique</span>
+            </a>
+            <a href="#" class="nav-item" data-page="settings">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">Paramètres</span>
+            </a>
+            <a href="#" class="nav-item" data-page="help">
+                <span class="nav-icon">❓</span>
+                <span class="nav-text">Aide</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="btn-theme" id="themeBtn" title="Mode sombre">🌙</button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+        <!-- PAGE PLANNING -->
+        <div class="page active" id="planning-page">
+            <header class="page-header">
+                <div class="page-title">
+                    <h1>📅 Planning Hebdomadaire</h1>
+                </div>
+                <div class="page-controls">
+                    <button class="btn-icon" id="prevWeek">←</button>
+                    <span class="week-display" id="weekDisplay">Semaine</span>
+                    <button class="btn-icon" id="nextWeek">→</button>
+                    <button class="btn" id="todayBtn">Aujourd'hui</button>
+                </div>
+            </header>
+
+            <div class="toolbar">
+                <button class="btn" id="savBtn">💾 Sauvegarder</button>
+                <button class="btn" id="exportPdfBtn">📥 PDF</button>
+                <button class="btn" id="exportImgBtn">📸 Image</button>
+                <button class="btn" id="printBtn">🖨️ Imprimer</button>
+                <button class="btn btn-danger" id="resetBtn">🔄 Réinitialiser</button>
+            </div>
+
+            <div class="planning-grid" id="planningGrid">
+                <!-- Généré par JS -->
+            </div>
+
+            <!-- Section Historique des notes -->
+            <div class="notes-history">
+                <h3>📝 Historique des Notes</h3>
+                <div class="notes-timeline" id="notesTimeline">
+                    <!-- Généré par JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE STATS -->
+        <div class="page" id="stats-page">
+            <header class="page-header">
+                <div class="page-title">
+                    <h1>📊 Statistiques</h1>
+                </div>
+            </header>
+
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-label">Présences</div>
+                    <div class="stat-value" id="totalPresent">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Taux</div>
+                    <div class="stat-value" id="totalRate">0%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Absences</div>
+                    <div class="stat-value" id="totalAbsent">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Tâches</div>
+                    <div class="stat-value" id="totalTasks">0</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h2>Présences par Membre</h2>
+                <canvas id="membersChart" height="80"></canvas>
+            </div>
+
+            <div class="members-details">
+                <h2>Détail par Membre</h2>
+                <div class="members-grid" id="membersGrid">
+                    <!-- Généré par JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE NOTES -->
+        <div class="page" id="notes-page">
+            <header class="page-header">
+                <div class="page-title">
+                    <h1>📝 Notes</h1>
+                </div>
+            </header>
+
+            <div class="settings-content" style="max-width:900px;">
+                <section class="settings-section">
+                    <h2>✉️ Rédiger une Note</h2>
+                    <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+                        <label style="font-weight:600; min-width:64px;">Jour:</label>
+                        <select id="noteDaySelect" class="input" style="width:160px;">
+                            <option value="week">Général (Semaine)</option>
+                            <option value="Lundi">Lundi</option>
+                            <option value="Mardi">Mardi</option>
+                            <option value="Mercredi">Mercredi</option>
+                            <option value="Jeudi">Jeudi</option>
+                            <option value="Vendredi">Vendredi</option>
+                        </select>
+
+                        <label style="font-weight:600; min-width:60px; margin-left:8px;">Créneau:</label>
+                        <select id="noteSlotSelect" class="input" style="width:180px;">
+                            <option value="general">Général</option>
+                            <option value="Matin">Matin</option>
+                            <option value="Après-midi">Après-midi</option>
+                        </select>
+
+                        <label style="font-weight:600; min-width:64px; margin-left:8px;">Auteur:</label>
+                        <select id="notePageAuthorSelect" class="input" style="width:180px;"></select>
+                        <button class="btn" id="notePageSetMeBtn" style="margin-left:auto;">Se définir</button>
+                    </div>
+
+                    <textarea id="notePageTextarea" class="notes-box" placeholder="Écrire une note..."></textarea>
+                    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+                        <button class="btn" id="notePageSendBtn">✅ Envoyer</button>
+                        <button class="btn btn-danger" id="notePageClearBtn">🗑️ Effacer</button>
+                    </div>
+                </section>
+
+                <section class="settings-section">
+                    <h2>📚 Notes cette semaine</h2>
+                    <div id="notesPageList"></div>
+                </section>
+            </div>
+        </div>
+
+        <!-- PAGE HISTORY -->
+        <div class="page" id="history-page">
+            <header class="page-header">
+                <div class="page-title">
+                    <h1>📜 Historique des Semaines</h1>
+                </div>
+            </header>
+
+            <div class="history-list" id="historyList">
+                <!-- Généré par JS -->
+            </div>
+        </div>
+
+        <!-- PAGE SETTINGS -->
+        <div class="page" id="settings-page">
+            <header class="page-header">
+                <div class="page-title">
+                    <h1>⚙️ Paramètres</h1>
+                </div>
+            </header>
+
+            <div class="settings-content">
+                <!-- THÈME -->
+                <section class="settings-section">
+                    <h2>🎨 Thème</h2>
+                    <div class="theme-buttons">
+                        <button class="theme-btn" data-theme="violet"></button>
+                        <button class="theme-btn" data-theme="blue"></button>
+                        <button class="theme-btn" data-theme="green"></button>
+                        <button class="theme-btn" data-theme="orange"></button>
+                        <button class="theme-btn" data-theme="pink"></button>
+                        <button class="theme-btn" data-theme="cyan"></button>
+                    </div>
+                </section>
+
+                <!-- MEMBRES -->
+                <section class="settings-section">
+                    <h2>👥 Gérer les Membres</h2>
+                    <div class="input-group">
+                        <input type="text" id="memberInput" class="input" placeholder="Ajouter un membre...">
+                        <button class="btn" id="addMemberBtn">+ Ajouter</button>
+                    </div>
+
+                    <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+                        <input type="text" id="currentUserInput" class="input" placeholder="Votre nom (ex: Moi, Alexis)">
+                        <button class="btn" id="setMeBtn">✅ Me définir</button>
+                        <div id="currentUserTag" style="margin-left:auto; font-size:13px; color:var(--text-secondary);"></div>
+                    </div>
+
+                    <div class="tags-container" id="tagsContainer">
+                        <!-- Généré par JS -->
+                    </div>
+                </section>
+
+                <!-- IMPORT/EXPORT -->
+                <section class="settings-section">
+                    <h2>💾 Sauvegarde</h2>
+                    <div class="button-grid">
+                        <button class="btn" id="exportJsonBtn">📥 Export JSON</button>
+                        <label class="btn" id="importJsonBtn">
+                            📤 Import JSON
+                            <input type="file" id="fileInput" accept=".json" hidden>
+                        </label>
+                        <button class="btn btn-danger" id="clearBtn">🗑️ Supprimer</button>
+                    </div>
+                </section>
+
+                <!-- INFOS -->
+                <section class="settings-section">
+                    <h2>ℹ️ Système</h2>
+                    <div class="info-box">
+                        <p><strong>Version:</strong> 3.0.1</p>
+                        <p><strong>Stockage:</strong> <span id="storageInfo">0 KB</span></p>
+                        <p><strong>Dernière sauvegarde:</strong> <span id="lastSave">Jamais</span></p>
+                        <p style="margin-top:8px; font-size:13px;"><strong>Changelog:</strong> 3.0.1 — Added timezone-safe dates, per-slot notes, member autocomplete with quick-add, startup loader, "Se rajouter" quick‑add, UI readability improvements.</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- PAGE HELP -->
+        <div class="page" id="help-page">
+            <header class="page-header">
+                <div class="page-title">
+                    <h1>❓ Aide & Contact</h1>
+                </div>
+            </header>
+
+            <div class="help-content">
+                <section class="help-section">
+                    <h2>📚 Questions Fréquentes</h2>
+                    <div class="faq-list">
+                        <div class="faq-item">
+                            <button class="faq-toggle">Comment ajouter un membre ?</button>
+                            <div class="faq-content">
+                                <p>Allez dans Paramètres → Gérer les Membres, entrez un nom et cliquez sur "+ Ajouter".</p>
+                            </div>
+                        </div>
+                        <div class="faq-item">
+                            <button class="faq-toggle">Quels sont les horaires ?</button>
+                            <div class="faq-content">
+                                <p><strong>Matin:</strong> 9h50 - 10h10 | <strong>Après-midi:</strong> 15h20 - 15h40</p>
+                            </div>
+                        </div>
+                        <div class="faq-item">
+                            <button class="faq-toggle">Comment assigner une tâche ?</button>
+                            <div class="faq-content">
+                                <p>Cliquez sur une tâche dans le planning et sélectionnez un membre.</p>
+                            </div>
+                        </div>
+                        <div class="faq-item">
+                            <button class="faq-toggle">Mes données sont-elles sauvegardées ?</button>
+                            <div class="faq-content">
+                                <p>Oui, vos données sont sauvegardées automatiquement dans le navigateur.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="help-section">
+                    <h2>📧 Contact</h2>
+                    <div class="contact-box">
+                        <p><strong>Responsable:</strong> Alexis</p>
+                        <p><strong>Email:</strong> <a href="mailto:alexis.giroudspro@outlook.fr">alexis.giroudspro@outlook.fr</a></p>
+                        <p><strong>Téléphone:</strong> <a href="tel:+33783259765">07 83 25 97 65</a></p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODALES -->
+    <div class="modal hidden" id="memberModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 id="modalTitle">Ajouter un Membre</h2>
+                <button class="modal-close" data-close="memberModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="modalSearch" class="input" placeholder="Chercher un membre...">
+                <div class="modal-list" id="modalList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal hidden" id="taskModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 id="taskTitle">Assigner une Tâche</h2>
+                <button class="modal-close" data-close="taskModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="task-list" id="taskList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal hidden" id="noteModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 id="noteModalTitle">Note</h2>
+                <button class="modal-close" data-close="noteModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+                    <label style="font-weight:600;">Auteur:</label>
+                    <select id="noteAuthorSelect" class="input" style="min-width:200px;"></select>
+                    <button class="btn" id="noteSetMeBtn" style="margin-left:auto;">Se définir</button>
+                </div>
+                <textarea id="noteTextarea" class="notes-box" placeholder="Ajouter une note..."></textarea>
+                <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+                    <button class="btn" id="noteSaveBtn">✅ Envoyer</button>
+                    <button class="btn btn-danger" id="noteDeleteBtn">🗑️ Supprimer</button>
+                    <button class="btn" id="noteCancelBtn" style="background: var(--text-secondary);">❌ Annuler</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
